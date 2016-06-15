@@ -31,7 +31,7 @@ def write_volfile (volfile, fname):
                         f.write("    %s %s\n" % (i, j))
             f.write("end-volume\n\n")
 
-def del_unsupported_xlators (volfile, volname):
+def del_unsupported_server_xlators (volfile, volname):
     del(volfile[volname + "-trash"])
     del(volfile[volname + "-changetimerecorder"])
     del(volfile[volname + "-changelog"])
@@ -46,8 +46,18 @@ def del_unsupported_xlators (volfile, volname):
     del(volfile[volname + "-barrier"])
     del(volfile[volname + "-index"])
     del(volfile[volname + "-quota"])
+    del(volfile[volname + "-decompounder"])
 
-def prepare_dht2_client_xlators (volfile, volname, mds_count, ds_count, brick_list):
+def del_unsupported_tcp_client_xlators (volfile, volname):
+    del(volfile[volname + "-write-behind"])
+    del(volfile[volname + "-read-ahead"])
+    del(volfile[volname + "-readdir-ahead"])
+    del(volfile[volname + "-io-cache"])
+    del(volfile[volname + "-quick-read"])
+    del(volfile[volname + "-open-behind"])
+    del(volfile[volname + "-md-cache"])
+
+def prepare_dht2_client_xlators (volfile, volname, mds_count, ds_count, brick_list, n):
 
     #Prepare default sub and opt dictionaries for protocol/client xlator
     opt_dict = OrderedDict()
@@ -61,8 +71,11 @@ def prepare_dht2_client_xlators (volfile, volname, mds_count, ds_count, brick_li
     #volfile[volname + "-client-0"] = volfile[volname + "-posix"]
     #del(volfile[volname + "-posix"])
 
-    i = 1
+    i = 0
     while i < mds_count + ds_count:
+        if i == n:
+            i += 1
+            continue
         opt_dict["remote-subvolume"] = brick_list[i].split(":")[-1]
         opt_dict["remote-host"] = brick_list[i].split(":")[0]
         opt_dict["ping-timeout"] = 42
@@ -73,7 +86,7 @@ def prepare_dht2_client_xlators (volfile, volname, mds_count, ds_count, brick_li
     del(sub_dict)
     del(opt_dict)
 
-def prepare_dht2_server_xlator (volfile, volname, mds_count, ds_count, brick_list):
+def prepare_dht2_xlator (volfile, volname, mds_count, ds_count, brick_list, server, n):
 
     opt_dict = OrderedDict()
     sub_dict = OrderedDict()
@@ -101,11 +114,15 @@ def prepare_dht2_server_xlator (volfile, volname, mds_count, ds_count, brick_lis
         subvols.append(volname + "-client-" + str(i))
         i += 1
 
-    sub_dict["type"] = "experimental/dht2s"
+    if server:
+        sub_dict["type"] = "experimental/dht2s"
+    else:
+        sub_dict["type"] = "experimental/dht2c"
     opt_dict["lock-migration"] = "off"
     opt_dict["dht2-data-subvolumes"] =  ds_bricks
     opt_dict["dht2-metadata-subvolumes"] =  mds_bricks
-    opt_dict["dht2-server-local-subvol"] = volname + "-client-0"
+    if server:
+        opt_dict["dht2-server-local-subvol"] = volname + "-client-" + str(n)
     sub_dict["option"] = opt_dict.copy()
     sub_dict["subvolumes"] = subvols
     volfile[volname + "-dht"] = sub_dict.copy()
@@ -113,7 +130,7 @@ def prepare_dht2_server_xlator (volfile, volname, mds_count, ds_count, brick_lis
     del(sub_dict)
     del(opt_dict)
 
-def generate_dht2_volfile(volname, brick_list, mds_count, ds_count, orig_volfile, new_dht2_volfile):
+def parse_input_volfile(orig_volfile):
     volfile = OrderedDict() 
     with open(orig_volfile, "r") as f:
         for line in f:
@@ -147,25 +164,32 @@ def generate_dht2_volfile(volname, brick_list, mds_count, ds_count, orig_volfile
             else:
                 print "Oops!!! Bug, Parser needs an update..."
                 sys.exit(1)
+    return volfile
+
+
+def generate_dht2_server_volfile(volname, brick_list, mds_count, ds_count, orig_volfile, new_dht2_volfile, n):
+
+    volfile = parse_input_volfile(orig_volfile)
 
     dht2_volfile = OrderedDict()
 
     #Prepare dht2 client-0 xlator
-    dht2_volfile[volname + "-client-0"] = copy.deepcopy(volfile[volname + "-posix"])
+    dht2_volfile[volname + "-client-" + str(n)] = copy.deepcopy(volfile[volname + "-posix"])
 
     #Preapre dht2 client (1...n) xlators
-    prepare_dht2_client_xlators(dht2_volfile, volname, mds_count, ds_count, brick_list)
+    prepare_dht2_client_xlators(dht2_volfile, volname, mds_count, ds_count, brick_list, n)
 
     #Prepare dht2s xlator
-    prepare_dht2_server_xlator(dht2_volfile, volname,  mds_count, ds_count, brick_list)
+    prepare_dht2_xlator(dht2_volfile, volname, mds_count, ds_count, brick_list, True, n)
     
     #Merge original volfile and dht2 volfile with necessary changes
     ####Del all not supported xlators
-    del_unsupported_xlators (volfile, volname)
+    del_unsupported_server_xlators (volfile, volname)
     ####Del master-posix xlator
     del(volfile[volname + "-posix"])
     ####Fix subvolumes because of deletion of unsupported xlators
-    master_subvolume =  " ".join(volfile[volname + "-server"]["subvolumes"])
+    master_subvolume =  volfile[volname + "-server"]["options"]["auth-path"]
+    volfile[volname + "-server"]["subvolumes"] = master_subvolume
     volfile[master_subvolume]["subvolumes"] = volname + "-io-threads"
     volfile[volname + "-io-threads"]["subvolumes"] = volname + "-dht"
     dht2_volfile.update(volfile)
@@ -173,11 +197,25 @@ def generate_dht2_volfile(volname, brick_list, mds_count, ds_count, orig_volfile
     #Write a modified volfile
     #write_volfile(volfile)
 
-    print "================================================================="
-    print "=                  DHT2 GRAPH                                   ="
-    print "================================================================="
+    #print "================================================================="
+    #print "=                  DHT2 GRAPH                                   ="
+    #print "================================================================="
 
-    print_volfile(dht2_volfile)
+    #print_volfile(dht2_volfile)
+
+    write_volfile(dht2_volfile, new_dht2_volfile)
+
+def generate_dht2_tcp_volfile(volname, brick_list, mds_count, ds_count, orig_volfile, new_dht2_volfile):
+    volfile = parse_input_volfile(orig_volfile)
+    del_unsupported_tcp_client_xlators (volfile, volname)
+
+    dht2_volfile = OrderedDict()
+    dht2_volfile.update(volfile)
+    #Modify client side dht xlator
+    prepare_dht2_xlator(dht2_volfile, volname, mds_count, ds_count, brick_list, False, 0)
+
+    #Fix io-stats subvolume
+    dht2_volfile[volname]["subvolumes"] = volname + "-dht"
 
     write_volfile(dht2_volfile, new_dht2_volfile)
 
@@ -194,7 +232,7 @@ def main():
 
     fname = sys.argv[1]
 
-    generate_dht2_volfile(volname, brick_list, mds_count, ds_count, fname, "/tmp/dht2.vol") 
+    generate_dht2_server_volfile(volname, brick_list, mds_count, ds_count, fname, "/tmp/dht2.vol", 0)
 
 if __name__ == "__main__":
     main()
