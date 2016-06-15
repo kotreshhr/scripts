@@ -108,9 +108,12 @@ def prepare_dht2_xlator (volfile, volname, mds_count, ds_count, brick_list, serv
             mds_bricks += volname + "-client-" + str(i) + ":"
         i += 1
 
-    subvols = []
+    subvols = [volname + "-client-" + str(n)]
     i = 0
     while i < mds_count + ds_count:
+        if i == n:
+            i += 1
+            continue
         subvols.append(volname + "-client-" + str(i))
         i += 1
 
