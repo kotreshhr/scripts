@@ -31,31 +31,37 @@ def write_volfile (volfile, fname):
                         f.write("    %s %s\n" % (i, j))
             f.write("end-volume\n\n")
 
+def del_xl(volfile, xl):
+    try:
+        del(volfile[xl])
+    except KeyError:
+        pass
+
 def del_unsupported_server_xlators (volfile, volname):
-    del(volfile[volname + "-trash"])
-    del(volfile[volname + "-changetimerecorder"])
-    del(volfile[volname + "-changelog"])
-    del(volfile[volname + "-bitrot-stub"])
-    del(volfile[volname + "-access-control"])
-    del(volfile[volname + "-locks"])
-    del(volfile[volname + "-worm"])
-    del(volfile[volname + "-read-only"])
-    del(volfile[volname + "-leases"])
-    del(volfile[volname + "-upcall"])
-    del(volfile[volname + "-marker"])
-    del(volfile[volname + "-barrier"])
-    del(volfile[volname + "-index"])
-    del(volfile[volname + "-quota"])
-    del(volfile[volname + "-decompounder"])
+    del_xl(volfile, volname + "-trash")
+    del_xl(volfile, volname + "-changetimerecorder")
+    del_xl(volfile, volname + "-changelog")
+    del_xl(volfile, volname + "-bitrot-stub")
+    del_xl(volfile, volname + "-access-control")
+    del_xl(volfile, volname + "-locks")
+    del_xl(volfile, volname + "-worm")
+    del_xl(volfile, volname + "-read-only")
+    del_xl(volfile, volname + "-leases")
+    del_xl(volfile, volname + "-upcall")
+    del_xl(volfile, volname + "-marker")
+    del_xl(volfile, volname + "-barrier")
+    del_xl(volfile, volname + "-index")
+    del_xl(volfile, volname + "-quota")
+    del_xl(volfile, volname + "-decompounder")
 
 def del_unsupported_tcp_client_xlators (volfile, volname):
-    del(volfile[volname + "-write-behind"])
-    del(volfile[volname + "-read-ahead"])
-    del(volfile[volname + "-readdir-ahead"])
-    del(volfile[volname + "-io-cache"])
-    del(volfile[volname + "-quick-read"])
-    del(volfile[volname + "-open-behind"])
-    del(volfile[volname + "-md-cache"])
+    del_xl(volfile, volname + "-write-behind")
+    del_xl(volfile, volname + "-read-ahead")
+    del_xl(volfile, volname + "-readdir-ahead")
+    del_xl(volfile, volname + "-io-cache")
+    del_xl(volfile, volname + "-quick-read")
+    del_xl(volfile, volname + "-open-behind")
+    del_xl(volfile, volname + "-md-cache")
 
 def prepare_dht2_client_xlators (volfile, volname, mds_count, ds_count, brick_list, n):
 
@@ -186,26 +192,20 @@ def generate_dht2_server_volfile(volname, brick_list, mds_count, ds_count, orig_
     prepare_dht2_xlator(dht2_volfile, volname, mds_count, ds_count, brick_list, True, n)
     
     #Merge original volfile and dht2 volfile with necessary changes
-    ####Del all not supported xlators
+    #Del all unsupported xlators
     del_unsupported_server_xlators (volfile, volname)
-    ####Del master-posix xlator
+
+    #Del master-posix xlator
     del(volfile[volname + "-posix"])
-    ####Fix subvolumes because of deletion of unsupported xlators
+
+    #Fix subvolumes because of deletion of unsupported xlators
     master_subvolume =  volfile[volname + "-server"]["options"]["auth-path"]
     volfile[volname + "-server"]["subvolumes"] = master_subvolume
     volfile[master_subvolume]["subvolumes"] = volname + "-io-threads"
     volfile[volname + "-io-threads"]["subvolumes"] = volname + "-dht"
     dht2_volfile.update(volfile)
 
-    #Write a modified volfile
-    #write_volfile(volfile)
-
-    #print "================================================================="
-    #print "=                  DHT2 GRAPH                                   ="
-    #print "================================================================="
-
-    #print_volfile(dht2_volfile)
-
+    #Write dht2 volfile
     write_volfile(dht2_volfile, new_dht2_volfile)
 
 def generate_dht2_tcp_volfile(volname, brick_list, mds_count, ds_count, orig_volfile, new_dht2_volfile):
@@ -221,21 +221,3 @@ def generate_dht2_tcp_volfile(volname, brick_list, mds_count, ds_count, orig_vol
     dht2_volfile[volname]["subvolumes"] = volname + "-dht"
 
     write_volfile(dht2_volfile, new_dht2_volfile)
-
-def main():
-    volname = "master"
-    brick_list_str = "fedora1:/bricks/brick0/b0 fedora1:/bricks/brick0/b1 fedora1:/bricks/brick0/b2 fedora1:/bricks/brick0/b3 fedora1:/bricks/brick0/b4 fedora1:/bricks/brick0/b5 fedora1:/bricks/brick0/b6"
-    brick_list = brick_list_str.split()
-    ds_count = 4
-    mds_count = 3
- 
-    if len(sys.argv) <= 1:
-        print "file name is not passed. Exiting..."
-        sys.exit(1)
-
-    fname = sys.argv[1]
-
-    generate_dht2_server_volfile(volname, brick_list, mds_count, ds_count, fname, "/tmp/dht2.vol", 0)
-
-if __name__ == "__main__":
-    main()

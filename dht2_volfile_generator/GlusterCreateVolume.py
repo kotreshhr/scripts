@@ -34,7 +34,11 @@ def get_args():
     parser.add_argument("ds_count", help="DS count", metavar="DS_COUNT", type=int)
     parser.add_argument("brick_list", help="Brick list as one string", metavar="BRICKS")
     parser.add_argument("--force", help="force volume creation", action="store_true")
-    return parser.parse_args()
+    try:
+        return parser.parse_args()
+    except:
+        print "ERROR: Argument Parsing... Did you send brick paths as single string ?"
+        sys.exit(1)
 
 def gluster_create_volume():
     """
