@@ -58,16 +58,15 @@ def gluster_create_volume():
     execute(cmd, "Volume Creation Failed!! Please check log file", "Volume Creation Success")
 
     vol_files = []
-    client_volfile = []
+    client_volfiles = []
     os.chdir("/var/lib/glusterd/vols/" + args.vol_name)
     for i in os.listdir("."):
         if i.startswith(args.vol_name) and i.endswith(".vol") \
                 and i.find("rebalance") == -1 and i.find("tcp") == -1:
            vol_files.append(i)
 
-        if i.startswith(args.vol_name) and i.endswith(".vol") \
-                and i.find("tcp-fuse") != -1:
-            client_volfile.append(i)
+        if i.endswith(".vol") and i.find("tcp-fuse") != -1:
+            client_volfiles.append(i)
 
     i = 0
     for orig_volfile in vol_files:
@@ -76,8 +75,9 @@ def gluster_create_volume():
         i += 1
 
     print "Generated dht2 brick vol files......."
-    new_client_volfile = client_volfile[0] + ".gen"
-    generate_dht2_tcp_volfile(args.vol_name, brick_list, args.mds_count, args.ds_count, client_volfile[0], new_client_volfile)
+    for clnt_volfile in client_volfiles:
+        new_client_volfile = clnt_volfile + ".gen"
+        generate_dht2_tcp_volfile(args.vol_name, brick_list, args.mds_count, args.ds_count, clnt_volfile, new_client_volfile)
     print "Generated dht2 tcp client vol files......."
 
 def main():
