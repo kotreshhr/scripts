@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <libgen.h>
 
+/* find ./linux-5.0.6/ -exec /root/a.out {} \; > ~/testcase.out4.noatimeon */
+
 int main(int argc, char *argv[])
 {
     int fd = -1;
