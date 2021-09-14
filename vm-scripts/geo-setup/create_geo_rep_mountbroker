@@ -1,0 +1,46 @@
+#! /bin/bash
+
+echo 'y' | gluster vol geo-rep master `hostname`::slave stop
+sleep 1
+echo 'y' | gluster vol geo-rep master `hostname`::slave delete
+sleep 1
+echo 'y' | gluster vol stop master
+sleep 1
+echo 'y' | gluster vol del master
+sleep 1
+echo 'y' | gluster vol stop slave
+sleep 1
+echo 'y' | gluster vol del slave
+/root/scripts/clean_b1.sh
+/root/scripts/all_log_0
+ldconfig /usr/local/lib
+
+echo 'y' | gluster vol create master f281:/bricks/brick0/b0 force
+sleep 1
+gluster vol start master
+echo 'y' | gluster vol create slave f281:/bricks/brick1/b1 force
+sleep 1
+gluster vol start slave
+
+sleep 1
+mount -t glusterfs `hostname`:master /mastermnt
+mount -t glusterfs `hostname`:slave /slavemnt
+
+gluster-mountbroker setup /var/mountbroker-root geogroup
+gluster-mountbroker add slave geoaccount
+gluster-mountbroker status
+
+# gluster system:: execute mountbroker opt mountbroker-root /var/mountbroker-root
+# gluster system:: execute mountbroker user geoaccount slavevol
+# gluster system:: execute mountbroker opt geo-replication-log-group geogroup
+# gluster system:: execute mountbroker opt rpc-auth-allow-insecure on
+pkill glusterd
+sleep 1
+glusterd
+sleep 1
+
+gluster system:: execute gsec_create
+gluster volume geo-rep master geoaccount@f281::slave create push-pem
+/usr/local/libexec/glusterfs/set_geo_rep_pem_keys.sh geoaccount master slave 
+gluster vol geo-rep master geoaccount@f281::slave start
+gluster vol geo-rep master geoaccount@f281::slave status

@@ -1,0 +1,25 @@
+#! /bin/bash
+
+cd /root/sandbox/downstream/*
+make uninstall
+make clean
+make distclean
+rm -rf /var/lib/glusterd
+rm -rf /usr/local/var/log/glusterfs
+rm -rf /usr/local/var/run/gluster*
+rm -rf /usr/local/etc/glusterfs
+rm -rf /usr/local/lib/glusterfs
+rm -rf /usr/local/lib/libgf*
+rm -rf /usr/local/include/glusterfs
+rm -rf /usr/local/share/glusterfs
+rm -rf /usr/local/libexec/glusterfs
+rm -rf /usr/local/lib/ocf/resource.d/glusterfs
+rm -rf /usr/local/share/doc/glusterfs
+rm -rf /usr/local/share/doc/glusterfs/benchmarking
+rm -rf /usr/local/var/lib/glusterd
+rm -rf /usr/local/var/lib/misc/glusterfsd
+rm -rf /usr/local/sbin/gluster*
+rm -rf /usr/local/lib/python2.7/site-packages/gluster*
+rm -rf /usr/local/lib/pkgconfig/glusterfs-api.pc
+rm -rf /var/log/glusterfs
+rm -rf /var/run/gluster*

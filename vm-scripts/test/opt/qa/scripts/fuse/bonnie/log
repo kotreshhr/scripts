@@ -1,0 +1,1 @@
+./bonnie.sh: line 6: $LOG_FILE: ambiguous redirect

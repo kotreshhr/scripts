@@ -1,0 +1,4 @@
+/dev/vg_0/thin_vol_0   /bricks/brick0   xfs    inode64,noatime,nodiratime 1 2
+/dev/vg_0/thin_vol_1   /bricks/brick1   xfs    inode64,noatime,nodiratime 1 2
+/dev/vg_0/thin_vol_2   /bricks/brick2   xfs    inode64,noatime,nodiratime 1 2
+/dev/vg_0/thin_vol_3   /bricks/brick3   xfs    inode64,noatime,nodiratime 1 2

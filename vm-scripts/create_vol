@@ -1,0 +1,7 @@
+#! /bin/bash
+
+gluster vol create master fedora1:/bricks/brick1/b1  fedora1:/bricks/brick2/b2 
+gluster vol start master
+
+mount -t glusterfs fedora1:master /mastermnt/
+gluster vol info

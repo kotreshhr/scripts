@@ -1,0 +1,5 @@
+#! /bin/bash
+
+gluster system:: execute gsec_create
+gluster volume geo-rep master fedora2::slave create push-pem
+gluster vol geo-rep master fedora2::slave start

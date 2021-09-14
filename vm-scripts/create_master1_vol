@@ -1,0 +1,8 @@
+#! /bin/bash
+
+gluster peer probe rhs2
+gluster vol create master1 replica 2 rhs1:/bricks/brick1/b1 rhs2:/bricks/brick1/b1 rhs1:/bricks/brick2/b2 rhs2:/bricks/brick2/b2
+gluster vol start master1
+
+mount -t glusterfs rhs1:master1 /master1mnt/
+gluster vol info

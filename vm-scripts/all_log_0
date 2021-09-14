@@ -1,0 +1,1 @@
+find /var/log/glusterfs -type f -name "*" | xargs truncate -s 0

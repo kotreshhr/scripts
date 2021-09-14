@@ -1,0 +1,45 @@
+#! /bin/bash
+
+gluster vol geo-rep master1 rhs3::slave1 stop
+gluster vol geo-rep master1 rhs3::slave1 delete
+#gluster vol geo-rep master1 rhs3::slave2 stop
+#gluster vol geo-rep master1 rhs3::slave2 delete
+
+umount /master1mnt
+gluster vol stop master1
+gluster vol delete master1
+umount /bricks/brick1
+umount /bricks/brick2
+#umount /bricks/brick3
+#umount /bricks/brick4
+
+dd if=/dev/zero of=/dev/vg_s1/brick1 count=10
+dd if=/dev/zero of=/dev/vg_s1/brick2 count=10
+#dd if=/dev/zero of=/dev/vg_s1/brick3 count=10
+#dd if=/dev/zero of=/dev/vg_s1/brick4 count=10
+sync
+mkfs.xfs -f -i size=512 /dev/vg_s1/brick1
+mkfs.xfs -f -i size=512 /dev/vg_s1/brick2
+#mkfs.xfs -f -i size=512 /dev/vg_s1/brick3
+#mkfs.xfs -f -i size=512 /dev/vg_s1/brick4
+sync
+mount -a
+
+rm -rf /bricks/brick1/b1 /bricks/brick2/b2
+sync
+
+ssh root@rhs2 -- << @@
+umount /bricks/brick1
+umount /bricks/brick2
+#umount /bricks/brick3
+#umount /bricks/brick4
+
+mkfs.xfs -f -i size=512 /dev/vg_s1/brick1
+mkfs.xfs -f -i size=512 /dev/vg_s1/brick2
+#mkfs.xfs -f -i size=512 /dev/vg_s1/brick3
+#mkfs.xfs -f -i size=512 /dev/vg_s1/brick4
+
+mount -a
+
+mkdir -p /bricks/brick1/b1 /bricks/brick2/b2
+@@
